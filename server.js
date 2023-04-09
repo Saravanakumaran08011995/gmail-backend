@@ -24,6 +24,15 @@ connection.once('open', () => {
   console.log('MongoDB connected successfully');
 });
 
+app.get('/',async(req,res)=>{
+  try {
+    res.json("I am working")
+  } catch (error) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+})
+
 // Get all emails from the database
 app.get('/api/emails', async (req, res) => {
   try {  
