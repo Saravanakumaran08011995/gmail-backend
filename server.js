@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const emailModel = require('./models/Email');
+const emailCollection = require('./models/EmailCollection') 
 dotenv.config()
 const app = express();
 
@@ -34,9 +35,26 @@ app.get('/api/emails', async (req, res) => {
   }
 });
 
+// Get sent emails from the database
+app.get('/api/emails/sent', async (req, res) => {
+  try {  
+    const emails = await emailCollection.find(); // retrieve emails from the database
+    res.json(emails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 app.post('/api/send-email', async (req, res) => {
   try {
-    const { name, email, message } = req.body;
+    const { sender, to, subject, text } = req.body;
+
+// validating email address    
+    const emailRegex = /^\S+@\S+\.\S+$/;
+      if (!emailRegex.test(to)) {
+     return res.status(400).json({ message: 'Invalid email address' });
+      }
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -48,9 +66,9 @@ app.post('/api/send-email', async (req, res) => {
 
     const mailOptions = {
       from: process.env.GMAIL_USER,
-      to: email,
-      subject: `Hello ${name}`,
-      text: message,
+      to: to,
+      subject: subject,
+      text: text,
     };
 
     await transporter.sendMail(mailOptions);
@@ -59,6 +77,24 @@ app.post('/api/send-email', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+ 
+app.post('/api/save-email', async (req, res) => {
+  try {
+    const newEmail = new emailCollection({
+      sender: req.body.sender,
+      to: req.body.to,
+      subject: req.body.subject,
+      text: req.body.text
+    });
+
+    await newEmail.save();
+
+    res.status(200).json({ message: 'Email saved to database' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'An error occurred while saving the email to the database' });
   }
 });
 
